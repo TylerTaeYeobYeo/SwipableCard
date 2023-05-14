@@ -49,12 +49,24 @@ export const Swipable: FC<SwipableProps> = (props) => {
   const nextColor = colorize(colorIndex + 1);
 
   let touchStartX: number | undefined = undefined;
+  let touchStartTime: number | undefined = undefined;
   let moved = false;
   let target: HTMLElement | undefined = undefined;
+
+  const cleanUpTouch = () => {
+    touchStartX = undefined;
+    target = undefined;
+    document.removeEventListener("mousemove", handleTouchMove);
+    document.removeEventListener("mouseup", handleTouchEnd);
+    moved = false;
+    reserveAnimation();
+  }
+
   const handleTouchStart = (e: any /*React.TouchEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement> */) => {
     if (moved) return;
     cancelInterval();
     touchStartX = e.pageX ?? e.touches[0].pageX;
+    touchStartTime = Date.now();
     target = e.target;
     target?.setAttribute("dragging", "true");
     if (e.pageX) {
@@ -67,6 +79,18 @@ export const Swipable: FC<SwipableProps> = (props) => {
     moved = true;
     const newX = e.pageX ?? e.touches[0].pageX;
     const deltaX = newX - (touchStartX ?? 0);
+
+    const newTime = Date.now();
+    const deltaTime = newTime - (touchStartTime ?? 0);
+
+    const speed = Math.abs(deltaX / deltaTime);
+    if (speed > 0.75) {
+      if (target) {
+        flipCard(target, deltaX > 0 ? 1: -1);
+      }
+      cleanUpTouch();
+      return;
+    }
     if (target) {
       target.style.transform = `translate3d(${deltaX}px, 0px, 0px)`;
       target.style.opacity = `${1 - Math.abs(deltaX) / target.clientWidth}`;
@@ -85,28 +109,21 @@ export const Swipable: FC<SwipableProps> = (props) => {
         target?.style.setProperty("transition", "transform 0.2s ease-in-out");
         target?.style.setProperty("opacity", "1.0");
         target?.style.setProperty("cursor", "grab");
+        cleanUpTouch();
         moved = false;
         reserveAnimation();
       } else {
         const direction = deltaX > 0 ? 1 : -1;
-        const callback = () => {
-          moved = false;
-          reserveAnimation();
-        };
         if (target) {
-          flipCard(target, direction, callback);
+          flipCard(target, direction, cleanUpTouch);
         }
         else {
-          callback();
+          cleanUpTouch();
         }
       }
     } else if (target === e.target){
       alert(`CLICK: ${color}`);
     }
-    touchStartX = undefined;
-    target = undefined;
-    document.removeEventListener("mousemove", handleTouchMove);
-    document.removeEventListener("mouseup", handleTouchEnd);
   };
   useEffect(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
