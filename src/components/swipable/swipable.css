@@ -1,0 +1,22 @@
+.ty_swipable {
+  position: absolute;
+  overflow: hidden;
+  z-index: 1;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  -webkit-transform: translate3d(0, 0, 0);
+  transform: translate3d(0, 0, 0);
+}
+
+.ty_card {
+  padding: 20px;
+  width: 100%;
+  user-select: none;
+  -moz-user-select: none;
+  -khtml-user-select: none;
+  -webkit-user-select: none;
+  -o-user-select: none;
+  cursor: grab;
+  transition: all 0.2s ease;
+  color: white;
+}
