@@ -55,6 +55,7 @@ export const Swipable: FC<SwipableProps> = (props) => {
 
   const cleanUpTouch = () => {
     touchStartX = undefined;
+    touchStartTime = undefined;
     target = undefined;
     document.removeEventListener("mousemove", handleTouchMove);
     document.removeEventListener("mouseup", handleTouchEnd);
