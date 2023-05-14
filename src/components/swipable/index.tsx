@@ -1,5 +1,6 @@
 import { FC, useCallback, useEffect, useRef, useState } from "react";
 import "./swipable.css";
+import { throttle } from "lodash";
 
 export type SwipableProps = {
   backgroundColors: string[];
@@ -63,18 +64,18 @@ export const Swipable: FC<SwipableProps> = (props) => {
     reserveAnimation();
   }
 
-  const handleTouchStart = (e: any /*React.TouchEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement> */) => {
+  const handleTouchStart = throttle((e: any /*React.TouchEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement> */) => {
     if (moved) return;
     cancelInterval();
     touchStartX = e.pageX ?? e.touches[0].pageX;
     touchStartTime = Date.now();
     target = e.target;
     target?.setAttribute("dragging", "true");
-    if (e.pageX) {
+    if (e.type === "mousedown") {
       document.addEventListener("mousemove", handleTouchMove);
       document.addEventListener("mouseup", handleTouchEnd);
     }
-  };
+  }, 100);
   const handleTouchMove = (e: any /*React.TouchEvent<HTMLDivElement> | React.MouseEvent<HTMLDivElement> */) => {
     if (touchStartX === undefined) return;
     moved = true;
@@ -110,21 +111,31 @@ export const Swipable: FC<SwipableProps> = (props) => {
         target?.style.setProperty("transition", "transform 0.2s ease-in-out");
         target?.style.setProperty("opacity", "1.0");
         target?.style.setProperty("cursor", "grab");
-        cleanUpTouch();
-        moved = false;
-        reserveAnimation();
       } else {
         const direction = deltaX > 0 ? 1 : -1;
         if (target) {
-          flipCard(target, direction, cleanUpTouch);
-        }
-        else {
-          cleanUpTouch();
+          flipCard(target, direction);
         }
       }
-    } else if (target === e.target){
-      alert(`CLICK: ${color}`);
+    } else if (target === e.target) {
+      /**
+       * 비동기로 alert를 호출하는 이유는
+       * 클릭할때
+       * mousedown과 touch start 이벤트가 겹치는 것을 막기 위함
+       * alert가 sync라 event loop를 막아
+       * touchstart -> alert -> mousedown으로 동작하는데
+       * 이렇게 되면 mousedown이 무시가 되지 않아 alert가 2번뜸
+       * 
+       * 비동기로 하면
+       * touchstart -> mousedown -> alert로 동작하고
+       * handleTouchStart가 throttle이 걸려있어서 mousedown이 무시되는 원리
+       */
+      setTimeout(() => {
+        alert(`CLICK: ${color}`);
+        cleanUpTouch();
+      }, 1);
     }
+    cleanUpTouch();
   };
   useEffect(() => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
